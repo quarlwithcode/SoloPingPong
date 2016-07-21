@@ -48,7 +48,7 @@ paintCanvas();
 function trackPosition(evt) {
     mouseObj.x = evt.pageX;
     mouseObj.y = evt.pageY;
-    console.log("Cursor x is: " + mouseObj.x + " Cursor y is: " + mouseObj.y);
+    //console.log("Cursor x is: " + mouseObj.x + " Cursor y is: " + mouseObj.y);
 }
 gameCanvas.addEventListener("mousemove", trackPosition, true);
 
@@ -99,9 +99,9 @@ var points = 0; // Game Points
 function paintScore() {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = "18px Arial, sans-serif";
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('Score: ' + points, 20, 20);
+    ctx.fillText('Score: ' + points, W/2, 20);
 }
 paintScore();
 
@@ -132,7 +132,18 @@ function paintPaddles(){
     for(var lp = 0; lp < paddlesArray.length; lp++){
         p = paddlesArray[lp];
         
-        ctx.fillStyle = "#ffffff";
+        switch(lp){
+            case 0:
+                ctx.fillStyle = "#ff0000";
+                break;
+            case 1:
+                ctx.fillStyle = "#0000ff";
+                break;
+            default:
+                ctx.fillStyle = "#ffffff";
+                break;
+        }
+        
         ctx.fillRect(p.x, p.y, p.w, p.h);
     }
 }
@@ -156,6 +167,24 @@ function btnClick(evt){
             animloop();
         }
     }
+    
+    if(flagGameOver == 1){
+        // User clicked on restart button
+        if(mx >= restartBtn.x && mx <= restartBtn.x + restartBtn.w){
+            if(my >= restartBtn.y && my <= restartBtn.y + restartBtn.h){
+                // reset game
+                points = 0;
+                ball.x = 20;
+                ball.y = 20;
+                ball.vx = 4;
+                ball.vy = 8;
+                
+                flagGameOver = 0;
+               
+                animloop();
+            }
+        }
+    }
 }
 
 
@@ -163,6 +192,7 @@ function btnClick(evt){
 
 var init;
 function animloop(){
+    //console.log("loop");
     init = requestAnimFrame(animloop);
     refreshCanvasFun();
 }
@@ -201,11 +231,12 @@ function check4collision(){
         collideAction(ball, pBot);
     } else {
 //        Ball went off the top or bottom of screen
-        if (ball.y + ball.r > H){
+        if (ball.y - ball.r > H){
             // Game over
-            
-        } else if(ball.y < 0){
-            //Game voer
+            gameOver();
+        } else if(ball.y + ball.r < 0){
+            //Game over
+             gameOver();
         }
         
         //ball hits the side of the screen
@@ -216,6 +247,59 @@ function check4collision(){
             ball.vx = -ball.vx;
             ball.x = ball.r;
         }
+    }
+    
+    //SPARKLES
+    if(flagCollision == 1){
+        for(var k = 0; k < particleCount; k++){
+            particles.push(new createParticles(particlePos.x, particlePos.y, particleDir));
+            randNum1 = Math.floor(Math.random()*(256-50+1)+50);
+            randNum2 = Math.floor(Math.random()*(256-50+1)+50);
+            randNum3 = Math.floor(Math.random()*(256-50+1)+50);
+        }
+    }
+    
+    //Emit particles
+    emitParticles();
+    
+    //reset collision flag
+    flagCollision = 0;
+}
+
+function createParticles(x, y, d){
+    this.x = x || 0;
+    this.y = y || 0;
+    
+    this.radius = 2;
+    this.vx = -1.5 + Math.random()*3;
+    this.vy = d * Math.random()*1.5;
+}
+
+var randNum1;
+var randNum2;
+var randNum3;
+
+function emitParticles(){
+   
+    
+    console.log(randNum1);
+    
+    for(var j = 0; j < particles.length; j++){
+        console.log(true);
+        par = particles[j];
+        
+        ctx.beginPath();
+        ctx.fillStyle = "rgb(" + randNum1 + "," + randNum2 + "," + randNum3 + ")";
+        if(par.radius > 0){
+            ctx.arc(par.x, par.y, par.radius, 0, Math.PI*2, false);
+        }
+        ctx.fill();
+        
+        par.x += par.vx;
+        par.y += par.vy;
+        
+        //reduce rad of particle so that it dies after a few seconds
+        par.radius = Math.max(par.radius - 0.05, 0.0);
     }
 }
 
@@ -244,8 +328,102 @@ function collideAction(b, p){
     }
     //reverse velocity
     ball.vy = -ball.vy;
+    
+    
+    if(paddleHit == 0){
+        // ball hit top paddle
+        ball.y = p.y - p.h;
+        
+        particlePos.y = ball.y+ball.r;
+        particleDir = -1;
+    } else if(paddleHit == 1){
+        // ball hit bottom paddle
+        ball.y = p.h + ball.r;
+        
+        particlePos.y = ball.y-ball.r;
+        particleDir = 1;
+    }
     //increment score
     points++;
+    increaseSpd();
+    
+    //Sparkles
+    particlePos.x = ball.x;
+    flagCollision = 1;
+}
+
+//SPARKLES
+
+var flagCollision = 0; // flag var for when ball collides with paddles for particles
+var particles = []; //array for particles
+var particlePos = {}; // object to contain the position of collision
+var particleDir = 1; // var to control the direction of particles
+var particleCount = 20;
+
+//Check for collision
+
+function increaseSpd(){
+    
+    //increase ball speed after every four points
+    if(points % 4 == 0){
+        if(Math.abs(ball.vx) < 15){
+            if(ball.vx < 0){
+                ball.vx += -1
+            } else {
+                ball.vx += 1;
+            }
+
+            if(ball.vy < 0){
+                ball.vy += -2;
+            } else {
+                ball.vy += 2;
+            }
+        }
+    }
+    
+}
+
+var flagGameOver = 0;
+
+//function to run when game is over
+function gameOver(){
+    //console.log("game over");
+    
+    // Display final score
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "20px Arial, san-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Game Over - You Scored " + points + " points!", W/2, H/2 + 25);
+    
+    // Stop the animation
+    cancelRequestAnimFrame(init);
+    
+    // Display replay button
+    restartBtn.draw();
+    
+    // Set game over flag to true
+    flagGameOver = 1;
+}
+
+var restartBtn = {}; //Start button object
+restartBtn = {
+    w: 100,
+    h: 50,
+    x: W / 2 - 50,
+    y: H / 2 - 50,
+    
+    draw: function() {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = "2";
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+        
+        ctx.font = "18px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Replay?", W/2, H/2 - 25);
+    }
 }
 
 
