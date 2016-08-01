@@ -94,6 +94,34 @@ startBtn = {
 }
 startBtn.draw();
 
+// Step 04 ..vnq.. Place a start button on the canvas
+var startInstruct = {}; //Start button object
+startInstruct = {
+    w: 100,
+    h: 50,
+    x: W / 2,
+    y: H / 2 + 100,
+    
+    draw: function() {
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = "2";
+        ctx.strokeRect(this.x, this.y, this.w, this.h);
+        
+        ctx.font = "30px Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Instructions", this.x, this.y);
+        ctx.textAlign = "left";
+        ctx.font = "18px Arial, sans-serif";
+        ctx.fillText("Use your mouse to move the paddles and hit the ball.", this.x-200, this.y+50);
+        ctx.fillText("If the ball gets behind one of your paddles you lose.", this.x-200, this.y+75);
+        ctx.fillText("Every 4 points the ball will speed and your paddles' heights will decrease.", this.x-200, this.y+100);
+        ctx.fillText("Survive as long as you can and score as many points as you can!", this.x-200, this.y+125);
+    }
+}
+startInstruct.draw();
+
 // Step 05 ..vnq.. Place score and points on canvas
 var points = 0; // Game Points
 function paintScore() {
@@ -108,15 +136,15 @@ paintScore();
 // Step 06 ..vnq.. Place paddles (top and bottom) on canvas
 
 function paddlePosition(TB){
-    this.w = 150;
-    this.h = 5;
+    this.w = 5;
+    this.h = 150;
     
-    this.x = W/2 - this.w/2;
+    this.y = H/2 - this.h/2;
     
     if(TB == "top"){
-        this.y = 0;
+        this.x = 0;
     } else {
-        this.y = H - this.h;
+        this.x = W - this.w;
     }
 }
 
@@ -161,9 +189,9 @@ function btnClick(evt){
     // User clicked on start button
     if(mx >= startBtn.x && mx <= startBtn.x + startBtn.w){
         if(my >= startBtn.y && my <= startBtn.y + startBtn.h){
-            console.log("jeez");  
+           // console.log("jeez");  
             startBtn = {};
-            
+            startInstruct = {};
             animloop();
         }
     }
@@ -211,7 +239,7 @@ function update(){
     //move the paddles, track the mouse
     for (var lp = 0; lp < paddlesArray.length; lp++){
         p = paddlesArray[lp];
-        p.x = mouseObj.x - p.w / 2; 
+        p.y = mouseObj.y - p.h / 2; 
     }
     //move the ball
     ball.x += ball.vx;
@@ -231,21 +259,21 @@ function check4collision(){
         collideAction(ball, pBot);
     } else {
 //        Ball went off the top or bottom of screen
-        if (ball.y - ball.r > H){
+        if (ball.x - ball.r > W){
             // Game over
             gameOver();
-        } else if(ball.y + ball.r < 0){
+        } else if(ball.x + ball.r < 0){
             //Game over
              gameOver();
         }
         
         //ball hits the side of the screen
-        if (ball.x + ball.r > W){
-            ball.vx = -ball.vx;
-            ball.x = W - ball.r;
-        } else if(ball.x - ball.r < 0){
-            ball.vx = -ball.vx;
-            ball.x = ball.r;
+        if (ball.y + ball.r > H){
+            ball.vy = -ball.vy;
+            ball.y = H - ball.r;
+        } else if(ball.y - ball.r < 0){
+            ball.vy = -ball.vy;
+            ball.y = ball.r;
         }
     }
     
@@ -271,8 +299,9 @@ function createParticles(x, y, d){
     this.y = y || 0;
     
     this.radius = 2;
-    this.vx = -1.5 + Math.random()*3;
-    this.vy = d * Math.random()*1.5;
+    this.vx = d * Math.random()*1.5;
+    this.vy = -1.5 + Math.random()*3;
+    
 }
 
 var randNum1;
@@ -305,11 +334,11 @@ function emitParticles(){
 
 var paddleHit;      //which paddle was hit 0 = top, 1 = bottom
 function collides(b, p){
-    if(b.x + b.r >= p.x && b.x - b.r <= p.x + p.w){
-        if(b.y >= (p.y - p.h) && p.y > 0){
+    if(b.y + b.r >= p.y && b.y - b.r <= p.y + p.h){
+        if(b.x >= (p.x - p.w) && p.x > 0){
             paddleHit = 0;
             return true;
-        } else if(b.y <= p.h && p.y === 0){
+        } else if(b.x <= p.w && p.x === 0){
             paddleHit = 1;
             return true;
         } else {
@@ -327,20 +356,20 @@ function collideAction(b, p){
         collisionSnd.play();
     }
     //reverse velocity
-    ball.vy = -ball.vy;
+    ball.vx = -ball.vx;
     
     
     if(paddleHit == 0){
         // ball hit top paddle
-        ball.y = p.y - p.h;
+        ball.x = p.x - p.w;
         
-        particlePos.y = ball.y+ball.r;
+        particlePos.x = ball.x+(ball.r/2);
         particleDir = -1;
     } else if(paddleHit == 1){
         // ball hit bottom paddle
-        ball.y = p.h + ball.r;
+        ball.x = p.w + ball.r;
         
-        particlePos.y = ball.y-ball.r;
+        particlePos.x = ball.x-ball.r;
         particleDir = 1;
     }
     //increment score
@@ -348,7 +377,7 @@ function collideAction(b, p){
     increaseSpd();
     
     //Sparkles
-    particlePos.x = ball.x;
+    particlePos.y = ball.y;
     flagCollision = 1;
 }
 
@@ -379,6 +408,9 @@ function increaseSpd(){
                 ball.vy += 2;
             }
         }
+        
+        paddlesArray[0].h -= 4;
+        paddlesArray[1].h -= 4;
     }
     
 }
