@@ -409,8 +409,8 @@ function increaseSpd(){
             }
         }
         
-        paddlesArray[0].h -= 4;
-        paddlesArray[1].h -= 4;
+        paddlesArray[0].h -= 5;
+        paddlesArray[1].h -= 5;
     }
     
 }
